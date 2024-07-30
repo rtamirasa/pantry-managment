@@ -1,7 +1,7 @@
 'use client';
-import { Button, Box, Stack, Typography, Modal } from '@mui/material';
+import { Button, Box, Stack, Typography, Modal, TextField } from '@mui/material';
 import { firestore } from '@/app/firebase';
-import { collection, query, getDocs } from 'firebase/firestore';
+import { collection, query, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 
 const style = {
@@ -23,24 +23,33 @@ const style = {
 export default function Home() {
   const [pantry, setPantry] = useState([]); // Initialize state correctly
   const [open, setOpen] = useState(false);
+  const [itemName, setItemName] = useState('');
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
-  useEffect(() => {
-    const updatePantry = async () => {
-      const snapshot = query(collection(firestore, 'pantry'));
-      const docs = await getDocs(snapshot);
-      const pantryList = [];
-      docs.forEach((doc) => {
-        pantryList.push({ id: doc.id, ...doc.data() }); // Create objects with id and data
-        console.log(doc.id, doc.data());
-      });
-      setPantry(pantryList);
-      console.log(pantryList);
-    };
+  const updatePantry = async () => {
+    const snapshot = query(collection(firestore, 'pantry'));
+    const docs = await getDocs(snapshot);
+    const pantryList = [];
+    docs.forEach((doc) => {
+      pantryList.push({ id: doc.id, ...doc.data() }); // Create objects with id and data
+      console.log(doc.id, doc.data());
+    });
+    setPantry(pantryList);
+    console.log(pantryList);
+  };
 
+  useEffect(() => {
     updatePantry();
   }, []);
+
+  const addItem = async (item) => {
+    const docRef = doc(collection(firestore, 'pantry'), item)
+    await setDoc(docRef,{})
+    updatePantry()
+  }
+ 
+  
 
   return (
     <Box
@@ -58,18 +67,35 @@ export default function Home() {
         aria-labelledby="modal-modal-title"
         aria-describedby="modal-modal-description"
       >
-        <Box style = {style}>
-          <Typography id="modal-modal-title" variant="h6" component="h2">
-            Text in a modal
-          </Typography>
-          <Typography id="modal-modal-description" sx={{ mt: 2 }}>
-            Duis mollis, est non commodo luctus, nisi erat porttitor ligula.
-          </Typography>
-        </Box>
-      </Modal>
-      <Button variant="contained" onClick={handleOpen}>
-        Add
-      </Button>
+        <Box sx={style}>
+        <Typography id="modal-modal-title" variant="h6" component="h2">
+          Add Item
+        </Typography>
+        <Stack width="100%" direction={'row'} spacing={2}>
+          <TextField
+            id="outlined-basic"
+            label="Item"
+            variant="outlined"
+            fullWidth
+            value = {itemName}
+            onChange={(e) => setItemName(e.target.value)}
+          />
+          <Button
+            variant="outlined"
+            onClick={() => {
+              addItem(itemName)
+              setItemName('')
+              handleClose()
+            }}
+          >
+            Add
+          </Button>
+        </Stack>
+      </Box>
+    </Modal>
+    <Button variant="contained" onClick={handleOpen}>
+      Add New Item
+    </Button>
       <Box border="1px solid #333"></Box>
       <Box border="1px solid #333">
         <Box
@@ -83,6 +109,7 @@ export default function Home() {
           <Typography variant="h2" color="#333" textAlign="center">
             Pantry Items
           </Typography>
+         
         </Box>
         <Stack width="800px" height="300px" spacing={2} overflow="auto">
           {pantry.map((i) => (
